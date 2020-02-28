@@ -2,13 +2,13 @@ use warp::filters::body;
 use warp::reply::json;
 use warp::Filter;
 
-use crate::skills::bl::AddSkill;
+use crate::skills::bl::IAddSkill;
 
 struct Request<'a> {
     label: &'a str,
 }
 
-pub fn add_skill<F: AddSkill>() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection>
+pub fn add_skill<F: IAddSkill>() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection>
 {
     warp::post()
         .and(body::json())
