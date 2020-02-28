@@ -1,19 +1,25 @@
-use warp::filters::body;
-use warp::reply::json;
-use warp::Filter;
+use std::sync::Arc;
 
-use crate::skills::bl::IAddSkill;
+use serde::Deserialize;
+use warp::{filters::body, reply::json, Filter};
 
-struct Request<'a> {
-    label: &'a str,
+use crate::skills::{bl::AddSkill, SkillLabel};
+
+#[derive(Deserialize)]
+struct Request {
+    label: SkillLabel,
 }
 
-pub fn add_skill<F: IAddSkill>() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection>
-{
+pub fn add_skill(
+    add_skill: impl AddSkill,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    let add_skill = Arc::new(add_skill);
     warp::post()
         .and(body::json())
-        .map(|skill_label| match F::add_skill(skill_label) {
-            Ok(skill) => json(&skill),
-            Err(e) => json(&e),
-        })
+        .map(
+            move |skill_label: Request| match add_skill(skill_label.label) {
+                Ok(skill) => json(&skill),
+                Err(e) => json(&e),
+            },
+        )
 }

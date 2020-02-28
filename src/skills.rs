@@ -1,5 +1,6 @@
-mod bl;
-mod http;
+pub mod bl;
+pub mod http;
+pub mod persist;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

@@ -1,29 +1,22 @@
 use uuid::Uuid;
 
-use crate::skills::Skill;
-use crate::skills::SkillLabel;
+use crate::skills::{persist::PersistSkill, Skill, SkillLabel};
 
-pub trait IAddSkill {
-    fn add_skill(label: SkillLabel) -> Result<Skill, String>;
-}
+pub trait IdGenerator = Fn() -> Uuid + Sync + Send + 'static;
 
-trait IdGenerator {
-    fn generate_id() -> Uuid;
-}
+pub trait AddSkill = Fn(SkillLabel) -> Result<Skill, String> + Sync + Send + 'static;
 
-trait PersistSkill {
-    fn persist_skill(skill: &Skill) -> Result<(), String>;
-}
-
-struct AddSkill;
-
-impl IAddSkill for AddSkill {
-    fn add_skill<I: IdGenerator, S: PersistSkill>(label: SkillLabel) -> Result<Skill, String> {
+pub fn add_skill<I, S>(id_generator: I, persist_skill: S) -> impl AddSkill
+where
+    I: IdGenerator,
+    S: PersistSkill,
+{
+    move |label| {
         let skill = Skill {
-            id: I::generate_id(),
+            id: id_generator(),
             label,
         };
-        S::persist_skill(&skill)?;
+        persist_skill(&skill)?;
         Ok(skill)
     }
 }
