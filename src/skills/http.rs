@@ -14,6 +14,6 @@ pub fn add_skill<F: AddSkill>() -> impl Filter<Extract = impl warp::Reply, Error
         .and(body::json())
         .map(|skill_label| match F::add_skill(skill_label) {
             Ok(skill) => json(&skill),
-            Err(e) => json(&e.to_string()),
+            Err(e) => json(&e),
         })
 }

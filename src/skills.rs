@@ -6,8 +6,13 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 #[serde(transparent)]
-struct SkillLabel(String);
+pub struct SkillLabel(String);
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
-// #[serde(transparent)]
-struct Skill {}
+#[serde(transparent)]
+pub struct Skill {
+    label: SkillLabel,
+}
+
+#[cfg(test)]
+mod test {}
