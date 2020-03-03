@@ -1,15 +1,2 @@
 [workspace]
-members = ["skill-manager"]
-# [package]
-# name = "skill-manager-rs"
-# version = "0.1.0"
-# authors = ["Timo Freiberg <timo.freiberg@novatec-gmbh.de>"]
-# edition = "2018"
-# 
-# # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-# 
-# [dependencies]
-# serde = { version = "1.0.104", features = ["derive"] }
-# serde_json = "1.0.48"
-# serde_derive = "1.0.104"
-# uuid = { version = "0.8.1", features = ["serde", "v4"] }
+members = ["skill-manager", "skill-manager-cli"]

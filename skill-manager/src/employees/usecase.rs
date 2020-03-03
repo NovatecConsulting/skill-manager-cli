@@ -1,3 +1,4 @@
+use thiserror::Error;
 use time::Date;
 
 use crate::{
@@ -9,61 +10,43 @@ use crate::{
     skills::{SkillId, SkillLabel},
 };
 
-pub trait AddEmployee = Fn(FirstName, LastName) -> Result<Employee, String>;
+pub trait AddEmployee = Fn(FirstName, LastName) -> crate::Result<Employee>;
 
-pub trait DeleteEmployeeById = Fn(EmployeeId) -> Result<(), String>;
+pub trait DeleteEmployeeById = Fn(EmployeeId) -> crate::Result<()>;
 
-pub trait GetEmployeeById = Fn(EmployeeId) -> Result<Option<Employee>, String>;
+pub trait GetEmployeeById = Fn(EmployeeId) -> crate::Result<Option<Employee>>;
 
 pub struct ProjectAssignmentRequest {
-    project_id: ProjectId,
-    contribution: ProjectContribution,
-    start_date: Date,
-    end_date: Option<Date>,
+    pub project_id: ProjectId,
+    pub contribution: ProjectContribution,
+    pub start_date: Date,
+    pub end_date: Option<Date>,
 }
-pub trait AssignProjectToEmployee =
-    Fn(EmployeeId, ProjectAssignmentRequest) -> Result<ProjectAssignment, String>;
+
+#[derive(Error, Debug)]
+pub enum AssignProjectToEmployeeError {
+    #[error("Employee not found")]
+    EmployeeNotFound,
+    #[error("Project not found")]
+    ProjectNotFound,
+}
+
+pub trait AssignProjectToEmployee = Fn(
+    EmployeeId,
+    ProjectAssignmentRequest,
+) -> Result<ProjectAssignment, AssignProjectToEmployeeError>;
 
 pub struct SkillAssignment {
-    label: SkillLabel,
-    level: SkillLevel,
+    pub label: SkillLabel,
+    pub level: SkillLevel,
 }
+#[derive(Error, Debug)]
+pub enum AssignSkillToEmployeeError {
+    #[error("Employee not found")]
+    EmployeeNotFound,
+    #[error("Skill not found")]
+    SkillNotFound,
+}
+
 pub trait AssignSkillToEmployee =
-    Fn(EmployeeId, SkillId, SkillLevel) -> Result<SkillAssignment, String>;
-
-#[cfg(test)]
-mod in_memory {
-    use std::{
-        cell::RefCell,
-        collections::{BTreeMap, HashMap},
-        rc::Rc,
-    };
-    use uuid::Uuid;
-
-    use super::*;
-
-    type EmployeeDb = Rc<RefCell<HashMap<EmployeeId, Employee>>>;
-
-    pub struct EmployeeApi {
-        add: Box<dyn AddEmployee>,
-        delete: Box<dyn DeleteEmployeeById>,
-        get: Box<dyn GetEmployeeById>,
-        assign_project: Box<dyn AssignProjectToEmployee>,
-        assign_skill: Box<dyn AssignSkillToEmployee>,
-    }
-
-    fn add(db: EmployeeDb) -> Box<dyn AddEmployee> {
-        Box::new(move |first_name, last_name| {
-            let id = EmployeeId(Uuid::new_v4());
-            let employee = Employee {
-                id: id.clone(),
-                first_name,
-                last_name,
-                skills: BTreeMap::default(),
-                projects: Vec::default(),
-            };
-            db.borrow_mut().insert(id, employee.clone());
-            Ok(employee)
-        })
-    }
-}
+    Fn(EmployeeId, SkillId, SkillLevel) -> Result<SkillAssignment, AssignSkillToEmployeeError>;

@@ -17,6 +17,15 @@ macro_rules! gen_wrapper {
         $(
             #[derive( $( $derive, )+ )]
             pub struct $name($type);
+
+            impl std::str::FromStr for $name {
+                type Err = anyhow::Error;
+
+                fn from_str(s: &str) -> Result<Self, Self::Err> {
+                    let inner = s.parse::<$type>()?;
+                    Ok(Self(inner))
+                }
+            }
         )+
     };
 }

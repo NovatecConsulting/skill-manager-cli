@@ -1,0 +1,15 @@
+[package]
+name = "skill-manager-cli"
+version = "0.1.0"
+authors = ["Timo Freiberg <timo.freiberg@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde_json = "1.0.48"
+serde = "1.0.104"
+anyhow = "1.0.26"
+skill-manager = { version = "0.1", path = "../skill-manager" }
+structopt = "0.3.11"
+time = "0.2.7"

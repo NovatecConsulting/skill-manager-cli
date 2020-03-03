@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use crate::{projects::Project, skills::Skill};
 
+pub mod in_memory;
 pub mod usecase;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Deserialize, Serialize, Hash)]

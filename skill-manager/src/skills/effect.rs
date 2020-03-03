@@ -1,3 +1,3 @@
-use crate::skills::Skill;
+use crate::{skills::Skill, Result};
 
-pub trait AddSkill = Fn(Skill) -> Result<Skill, String>;
+pub trait AddSkill = Fn(Skill) -> Result<Skill>;
