@@ -26,9 +26,9 @@ pub fn in_memory_api_using(
     project_db: ProjectDb,
     employee_db: EmployeeDb,
 ) -> InMemoryApi {
-    let skills = skills_api_using(skill_db.into());
-    let projects = projects_api_using(project_db.into());
-    let employees = employees_api_using(employee_db.into(), projects.db.clone(), skills.db.clone());
+    let skills = skills_api_using(skill_db);
+    let projects = projects_api_using(project_db);
+    let employees = employees_api_using(employee_db, projects.db.clone(), skills.db.clone());
     InMemoryApi {
         skills,
         projects,

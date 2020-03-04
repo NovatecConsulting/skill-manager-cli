@@ -29,7 +29,8 @@ pub struct ProjectsApi {
     pub get: Box<dyn GetProject>,
 }
 
-pub type ProjectDb = Rc<RefCell<HashMap<ProjectId, Project>>>;
+pub type ProjectDb = Rc<RefCell<ProjectStore>>;
+pub type ProjectStore = HashMap<ProjectId, Project>;
 
 fn add(db: ProjectDb) -> Box<dyn AddProject> {
     Box::new(move |label, description| {

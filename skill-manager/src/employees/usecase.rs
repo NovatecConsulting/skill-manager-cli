@@ -1,6 +1,3 @@
-use thiserror::Error;
-use time::Date;
-
 use crate::{
     employees::{
         Employee, EmployeeId, FirstName, LastName, ProjectAssignment, ProjectContribution,
@@ -9,6 +6,9 @@ use crate::{
     projects::ProjectId,
     skills::{SkillId, SkillLabel},
 };
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
+use time::Date;
 
 pub trait AddEmployee = Fn(FirstName, LastName) -> crate::Result<Employee>;
 
@@ -36,6 +36,7 @@ pub trait AssignProjectToEmployee = Fn(
     ProjectAssignmentRequest,
 ) -> Result<ProjectAssignment, AssignProjectToEmployeeError>;
 
+#[derive(Deserialize, Serialize)]
 pub struct SkillAssignment {
     pub label: SkillLabel,
     pub level: SkillLevel,

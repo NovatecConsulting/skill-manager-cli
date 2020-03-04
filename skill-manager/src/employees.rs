@@ -1,10 +1,8 @@
-use std::collections::BTreeMap;
-
+use crate::{projects::Project, skills::SkillLabel};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use time::Date;
 use uuid::Uuid;
-
-use crate::{projects::Project, skills::Skill};
 
 pub mod in_memory;
 pub mod usecase;
@@ -14,7 +12,7 @@ pub struct Employee {
     pub id: EmployeeId,
     pub first_name: FirstName,
     pub last_name: LastName,
-    pub skills: BTreeMap<Skill, Knowledge>,
+    pub skills: BTreeMap<SkillLabel, Knowledge>,
     pub projects: Vec<ProjectAssignment>,
 }
 

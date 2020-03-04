@@ -17,7 +17,8 @@ use std::{
 };
 use uuid::Uuid;
 
-pub type EmployeeDb = Rc<RefCell<HashMap<EmployeeId, Employee>>>;
+pub type EmployeeDb = Rc<RefCell<EmployeeStore>>;
+pub type EmployeeStore = HashMap<EmployeeId, Employee>;
 
 pub fn employees_api(project_db: ProjectDb, skill_db: SkillDb) -> EmployeeApi {
     let employee_db = Rc::new(RefCell::new(HashMap::new()));
@@ -117,11 +118,12 @@ fn assign_skill(employee_db: EmployeeDb, skill_db: SkillDb) -> Box<dyn AssignSki
             .ok_or(AssignSkillToEmployeeError::SkillNotFound)?;
 
         employee.skills.insert(
-            skill.clone(),
+            skill.label.clone(),
             Knowledge {
                 level: level.clone(),
             },
         );
+
         Ok(SkillAssignment {
             label: skill.label.clone(),
             level,

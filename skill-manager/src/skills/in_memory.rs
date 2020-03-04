@@ -32,7 +32,8 @@ pub struct SkillsApi {
     pub delete: Box<dyn DeleteSkillById>,
 }
 
-pub type SkillDb = Rc<RefCell<HashMap<SkillId, Skill>>>;
+pub type SkillDb = Rc<RefCell<SkillStore>>;
+pub type SkillStore = HashMap<SkillId, Skill>;
 
 fn get(db: SkillDb) -> Box<dyn GetSkillById> {
     Box::new(move |skill_id| Ok(db.borrow().get(&skill_id).cloned()))

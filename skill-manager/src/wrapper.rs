@@ -26,6 +26,12 @@ macro_rules! gen_wrapper {
                     Ok(Self(inner))
                 }
             }
+
+            impl std::fmt::Display for $name {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(f, "{}", self.0)
+                }
+            }
         )+
     };
 }
