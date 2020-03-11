@@ -59,11 +59,10 @@ fn get(db: ProjectDb) -> Box<dyn GetProject> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use skill_manager::projects::{ProjectDescription, ProjectLabel};
 
     #[test]
-    fn projects_api_test() -> crate::Result<()> {
-        use crate::projects::{ProjectDescription, ProjectLabel};
-
+    fn projects_api_test() -> skill_manager::Result<()> {
         let api = projects_api();
         let project = ProjectLabel("Example project".into());
         let added = (api.add)(project.clone(), ProjectDescription("".into()))?;

@@ -2,8 +2,11 @@ use anyhow::Result;
 use serde::{de::DeserializeOwned, Serialize};
 use skill_manager::{
     employees::{
-        usecase::ProjectAssignmentRequest, EmployeeId, FirstName, LastName, ProjectContribution,
-        SkillLevel,
+        usecase::{
+            AddEmployee, AssignProjectToEmployee, AssignSkillToEmployee, DeleteEmployeeById,
+            GetEmployeeById, ProjectAssignmentRequest,
+        },
+        EmployeeId, FirstName, LastName, ProjectContribution, SkillLevel,
     },
     projects::{ProjectDescription, ProjectId, ProjectLabel},
     skills::{
@@ -203,15 +206,15 @@ fn employee_op(employee_command: EmployeeCommand, api: EmployeeApi) -> Result<()
             first_name,
             last_name,
         } => {
-            let added = (api.add)(first_name, last_name)?;
+            let added = api.add(first_name, last_name)?;
             print_json(&added)
         }
         EmployeeCommand::Delete { id } => {
-            (api.delete)(id.clone())?;
+            api.delete(id.clone())?;
             print_json(&format!("Deleted employee {}", id))
         }
         EmployeeCommand::Get { id } => {
-            let employee = (api.get)(id)?;
+            let employee = api.get(id)?;
             print_json(&employee)
         }
         EmployeeCommand::AssignProject {
@@ -221,7 +224,7 @@ fn employee_op(employee_command: EmployeeCommand, api: EmployeeApi) -> Result<()
             end_date,
             contribution,
         } => {
-            let assigned = (api.assign_project)(
+            let assigned = api.assign_project(
                 employee_id,
                 ProjectAssignmentRequest {
                     project_id,
@@ -237,7 +240,7 @@ fn employee_op(employee_command: EmployeeCommand, api: EmployeeApi) -> Result<()
             skill_id,
             skill_level,
         } => {
-            let assigned = (api.assign_skill)(employee_id, skill_id, skill_level)?;
+            let assigned = api.assign_skill(employee_id, skill_id, skill_level)?;
             print_json(&assigned)
         }
     }

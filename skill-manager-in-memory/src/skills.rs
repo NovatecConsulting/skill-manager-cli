@@ -83,11 +83,10 @@ fn delete(db: SkillDb) -> Box<dyn DeleteSkillById> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use skill_manager::skills::SkillLabel;
 
     #[test]
-    fn skill_api_test() -> crate::Result<()> {
-        use crate::skills::SkillLabel;
-
+    fn skill_api_test() -> skill_manager::Result<()> {
         let api = skills_api();
         let skill = SkillLabel("Example".into());
         assert_eq!((api.find)(None, None)?, vec![]);

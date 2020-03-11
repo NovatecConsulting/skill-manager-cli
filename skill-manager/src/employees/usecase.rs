@@ -10,11 +10,44 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use time::Date;
 
-pub trait AddEmployee = Fn(FirstName, LastName) -> crate::Result<Employee>;
+pub trait AddEmployee {
+    fn add(&self, first_name: FirstName, last_name: LastName) -> crate::Result<Employee>;
+}
 
-pub trait DeleteEmployeeById = Fn(EmployeeId) -> crate::Result<()>;
+impl<F> AddEmployee for F
+where
+    F: Fn(FirstName, LastName) -> crate::Result<Employee>,
+{
+    fn add(&self, first_name: FirstName, last_name: LastName) -> crate::Result<Employee> {
+        self(first_name, last_name)
+    }
+}
 
-pub trait GetEmployeeById = Fn(EmployeeId) -> crate::Result<Option<Employee>>;
+pub trait DeleteEmployeeById {
+    fn delete(&self, employee_id: EmployeeId) -> crate::Result<()>;
+}
+
+impl<F> DeleteEmployeeById for F
+where
+    F: Fn(EmployeeId) -> crate::Result<()>,
+{
+    fn delete(&self, employee_id: EmployeeId) -> crate::Result<()> {
+        self(employee_id)
+    }
+}
+
+pub trait GetEmployeeById {
+    fn get(&self, employee_id: EmployeeId) -> crate::Result<Option<Employee>>;
+}
+
+impl<F> GetEmployeeById for F
+where
+    F: Fn(EmployeeId) -> crate::Result<Option<Employee>>,
+{
+    fn get(&self, employee_id: EmployeeId) -> crate::Result<Option<Employee>> {
+        self(employee_id)
+    }
+}
 
 pub struct ProjectAssignmentRequest {
     pub project_id: ProjectId,
@@ -31,10 +64,29 @@ pub enum AssignProjectToEmployeeError {
     ProjectNotFound,
 }
 
-pub trait AssignProjectToEmployee = Fn(
-    EmployeeId,
-    ProjectAssignmentRequest,
-) -> Result<ProjectAssignment, AssignProjectToEmployeeError>;
+pub trait AssignProjectToEmployee {
+    fn assign_project(
+        &self,
+        employee_id: EmployeeId,
+        project_assignment: ProjectAssignmentRequest,
+    ) -> Result<ProjectAssignment, AssignProjectToEmployeeError>;
+}
+
+impl<F> AssignProjectToEmployee for F
+where
+    F: Fn(
+        EmployeeId,
+        ProjectAssignmentRequest,
+    ) -> Result<ProjectAssignment, AssignProjectToEmployeeError>,
+{
+    fn assign_project(
+        &self,
+        employee_id: EmployeeId,
+        project_assignment: ProjectAssignmentRequest,
+    ) -> Result<ProjectAssignment, AssignProjectToEmployeeError> {
+        self(employee_id, project_assignment)
+    }
+}
 
 #[derive(Deserialize, Serialize)]
 pub struct SkillAssignment {
@@ -49,5 +101,25 @@ pub enum AssignSkillToEmployeeError {
     SkillNotFound,
 }
 
-pub trait AssignSkillToEmployee =
-    Fn(EmployeeId, SkillId, SkillLevel) -> Result<SkillAssignment, AssignSkillToEmployeeError>;
+pub trait AssignSkillToEmployee {
+    fn assign_skill(
+        &self,
+        employee_id: EmployeeId,
+        skill_id: SkillId,
+        skill_level: SkillLevel,
+    ) -> Result<SkillAssignment, AssignSkillToEmployeeError>;
+}
+
+impl<F> AssignSkillToEmployee for F
+where
+    F: Fn(EmployeeId, SkillId, SkillLevel) -> Result<SkillAssignment, AssignSkillToEmployeeError>,
+{
+    fn assign_skill(
+        &self,
+        employee_id: EmployeeId,
+        skill_id: SkillId,
+        skill_level: SkillLevel,
+    ) -> Result<SkillAssignment, AssignSkillToEmployeeError> {
+        self(employee_id, skill_id, skill_level)
+    }
+}
