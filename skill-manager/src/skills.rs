@@ -7,7 +7,7 @@ pub mod usecase;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Deserialize, Serialize, Hash)]
 pub struct Skill {
-    id: SkillId,
+    pub id: SkillId,
     pub label: SkillLabel,
 }
 

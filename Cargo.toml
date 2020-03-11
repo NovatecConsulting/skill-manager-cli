@@ -1,2 +1,2 @@
 [workspace]
-members = ["skill-manager", "skill-manager-cli"]
+members = ["skill-manager", "skill-manager-in-memory", "skill-manager-cli", "skill-manager-tui"]

@@ -27,7 +27,7 @@ pub struct ProjectAssignment {
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Deserialize, Serialize, Hash)]
 pub struct Knowledge {
-    level: SkillLevel,
+    pub level: SkillLevel,
 }
 
 gen_wrapper!(

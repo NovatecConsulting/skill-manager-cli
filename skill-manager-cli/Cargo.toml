@@ -11,5 +11,6 @@ serde_json = "1.0.48"
 serde = "1.0.104"
 anyhow = "1.0.26"
 skill-manager = { version = "0.1", path = "../skill-manager" }
+skill-manager-in-memory = { version = "0.1", path = "../skill-manager-in-memory" }
 structopt = "0.3.11"
 time = "0.2.7"

@@ -2,20 +2,20 @@ use anyhow::Result;
 use serde::{de::DeserializeOwned, Serialize};
 use skill_manager::{
     employees::{
-        in_memory::{EmployeeApi, EmployeeStore},
-        usecase::ProjectAssignmentRequest,
-        EmployeeId, FirstName, LastName, ProjectContribution, SkillLevel,
+        usecase::ProjectAssignmentRequest, EmployeeId, FirstName, LastName, ProjectContribution,
+        SkillLevel,
     },
-    in_memory::in_memory_api_using,
-    projects::{
-        in_memory::{ProjectStore, ProjectsApi},
-        ProjectDescription, ProjectId, ProjectLabel,
-    },
+    projects::{ProjectDescription, ProjectId, ProjectLabel},
     skills::{
-        in_memory::{SkillStore, SkillsApi},
         usecase::{PageNumber, PageSize},
         SkillId, SkillLabel,
     },
+};
+use skill_manager_in_memory::{
+    employees::{EmployeeApi, EmployeeStore},
+    in_memory_api_using,
+    projects::{ProjectStore, ProjectsApi},
+    skills::{SkillStore, SkillsApi},
 };
 use std::{cell::RefCell, fs, fs::File, io, path::Path, process, rc::Rc};
 use structopt::StructOpt;

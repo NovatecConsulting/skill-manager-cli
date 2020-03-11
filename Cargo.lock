@@ -278,9 +278,26 @@ dependencies = [
  "serde",
  "serde_json",
  "skill-manager",
+ "skill-manager-in-memory",
  "structopt",
  "time",
 ]
+
+[[package]]
+name = "skill-manager-in-memory"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "serde",
+ "skill-manager",
+ "thiserror",
+ "time",
+ "uuid",
+]
+
+[[package]]
+name = "skill-manager-tui"
+version = "0.1.0"
 
 [[package]]
 name = "strsim"

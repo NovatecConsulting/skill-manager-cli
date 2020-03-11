@@ -16,7 +16,7 @@ macro_rules! gen_wrapper {
     ( $( $name:ident: $type:ty [$( $derive:ident ), +]),+ ) => {
         $(
             #[derive( $( $derive, )+ )]
-            pub struct $name($type);
+            pub struct $name(pub $type);
 
             impl std::str::FromStr for $name {
                 type Err = anyhow::Error;

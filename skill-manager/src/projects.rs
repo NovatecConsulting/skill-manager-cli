@@ -6,9 +6,9 @@ pub mod usecase;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Deserialize, Serialize, Hash)]
 pub struct Project {
-    id: ProjectId,
-    label: ProjectLabel,
-    description: ProjectDescription,
+    pub id: ProjectId,
+    pub label: ProjectLabel,
+    pub description: ProjectDescription,
 }
 
 gen_wrapper!(ProjectId: Uuid);
