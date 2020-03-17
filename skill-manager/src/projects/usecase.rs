@@ -3,8 +3,49 @@ use crate::{
     Result,
 };
 
-pub trait AddProject = Fn(ProjectLabel, ProjectDescription) -> Result<Project>;
+pub trait AddProject {
+    fn add(
+        &self,
+        project_label: ProjectLabel,
+        project_description: ProjectDescription,
+    ) -> Result<Project>;
+}
 
-pub trait DeleteProject = Fn(ProjectId) -> Result<()>;
+impl<F> AddProject for F
+where
+    F: Fn(ProjectLabel, ProjectDescription) -> Result<Project>,
+{
+    fn add(
+        &self,
+        project_label: ProjectLabel,
+        project_description: ProjectDescription,
+    ) -> Result<Project> {
+        self(project_label, project_description)
+    }
+}
 
-pub trait GetProject = Fn(ProjectId) -> Result<Option<Project>>;
+pub trait DeleteProject {
+    fn delete(&self, project_id: ProjectId) -> Result<()>;
+}
+
+impl<F> DeleteProject for F
+where
+    F: Fn(ProjectId) -> Result<()>,
+{
+    fn delete(&self, project_id: ProjectId) -> Result<()> {
+        self(project_id)
+    }
+}
+
+pub trait GetProject {
+    fn get(&self, project_id: ProjectId) -> Result<Option<Project>>;
+}
+
+impl<F> GetProject for F
+where
+    F: Fn(ProjectId) -> Result<Option<Project>>,
+{
+    fn get(&self, project_id: ProjectId) -> Result<Option<Project>> {
+        self(project_id)
+    }
+}

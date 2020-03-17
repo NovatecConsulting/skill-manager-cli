@@ -65,11 +65,13 @@ mod test {
     fn projects_api_test() -> skill_manager::Result<()> {
         let api = projects_api();
         let project = ProjectLabel("Example project".into());
-        let added = (api.add)(project.clone(), ProjectDescription("".into()))?;
+        let added = api
+            .add
+            .add(project.clone(), ProjectDescription("".into()))?;
         assert_eq!(project, added.label);
-        assert_eq!((api.get)(added.id.clone())?, Some(added.clone()));
-        (api.delete)(added.id.clone())?;
-        assert_eq!((api.get)(added.id)?, None);
+        assert_eq!(api.get.get(added.id.clone())?, Some(added.clone()));
+        api.delete.delete(added.id.clone())?;
+        assert_eq!(api.get.get(added.id)?, None);
 
         Ok(())
     }

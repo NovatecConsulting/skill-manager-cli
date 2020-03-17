@@ -4,7 +4,18 @@ use crate::{
 };
 use core::str::FromStr;
 
-pub trait AddSkill = Fn(SkillLabel) -> Result<Skill>;
+pub trait AddSkill {
+    fn add(&self, skill_label: SkillLabel) -> Result<Skill>;
+}
+
+impl<F> AddSkill for F
+where
+    F: Fn(SkillLabel) -> Result<Skill>,
+{
+    fn add(&self, skill_label: SkillLabel) -> Result<Skill> {
+        self(skill_label)
+    }
+}
 
 #[derive(Clone, Copy)]
 pub struct PageNumber(pub usize);
@@ -28,10 +39,49 @@ impl FromStr for PageSize {
     }
 }
 
-pub trait FindSkills = Fn(Option<PageNumber>, Option<PageSize>) -> Result<Vec<Skill>>;
+pub trait FindSkills {
+    fn find(
+        &self,
+        page_number: Option<PageNumber>,
+        page_size: Option<PageSize>,
+    ) -> Result<Vec<Skill>>;
+}
 
-pub trait GetSkillById = Fn(SkillId) -> Result<Option<Skill>>;
+impl<F> FindSkills for F
+where
+    F: Fn(Option<PageNumber>, Option<PageSize>) -> Result<Vec<Skill>>,
+{
+    fn find(
+        &self,
+        page_number: Option<PageNumber>,
+        page_size: Option<PageSize>,
+    ) -> Result<Vec<Skill>> {
+        self(page_number, page_size)
+    }
+}
 
-pub trait DeleteSkillById = Fn(SkillId) -> Result<()>;
+pub trait GetSkillById {
+    fn get(&self, skill_id: SkillId) -> Result<Option<Skill>>;
+}
 
-pub mod in_memory {}
+impl<F> GetSkillById for F
+where
+    F: Fn(SkillId) -> Result<Option<Skill>>,
+{
+    fn get(&self, skill_id: SkillId) -> Result<Option<Skill>> {
+        self(skill_id)
+    }
+}
+
+pub trait DeleteSkillById {
+    fn delete(&self, skill_id: SkillId) -> Result<()>;
+}
+
+impl<F> DeleteSkillById for F
+where
+    F: Fn(SkillId) -> Result<()>,
+{
+    fn delete(&self, skill_id: SkillId) -> Result<()> {
+        self(skill_id)
+    }
+}

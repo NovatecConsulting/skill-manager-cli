@@ -165,19 +165,19 @@ fn print_json(val: &impl Serialize) -> Result<()> {
 fn skill_op(skill_command: SkillCommand, api: SkillsApi) -> Result<()> {
     match skill_command {
         SkillCommand::Add { label } => {
-            let added_skill = (api.add)(label)?;
+            let added_skill = api.add.add(label)?;
             print_json(&added_skill)
         }
         SkillCommand::Get { id } => {
-            let skill = (api.get)(id)?;
+            let skill = api.get.get(id)?;
             print_json(&skill)
         }
         SkillCommand::Find { page, page_size } => {
-            let found = (api.find)(page, page_size)?;
+            let found = api.find.find(page, page_size)?;
             print_json(&found)
         }
         SkillCommand::Delete { id } => {
-            (api.delete)(id.clone())?;
+            api.delete.delete(id.clone())?;
             print_json(&format!("Deleted skill {}", id))
         }
     }
@@ -186,15 +186,15 @@ fn skill_op(skill_command: SkillCommand, api: SkillsApi) -> Result<()> {
 fn project_op(project_command: ProjectCommand, api: ProjectsApi) -> Result<()> {
     match project_command {
         ProjectCommand::Add { label, description } => {
-            let added_project = (api.add)(label, description)?;
+            let added_project = api.add.add(label, description)?;
             print_json(&added_project)
         }
         ProjectCommand::Delete { id } => {
-            (api.delete)(id.clone())?;
+            api.delete.delete(id.clone())?;
             print_json(&format!("Deleted project {}", id))
         }
         ProjectCommand::Get { id } => {
-            let project = (api.get)(id)?;
+            let project = api.get.get(id)?;
             print_json(&project)
         }
     }

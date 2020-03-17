@@ -89,8 +89,8 @@ mod test {
     fn skill_api_test() -> skill_manager::Result<()> {
         let api = skills_api();
         let skill = SkillLabel("Example".into());
-        assert_eq!((api.find)(None, None)?, vec![]);
-        let added_skill = (api.add)(skill.clone())?;
+        assert_eq!(api.find.find(None, None)?, vec![]);
+        let added_skill = api.add.add(skill.clone())?;
         assert_eq!(added_skill.label, skill);
         Ok(())
     }
