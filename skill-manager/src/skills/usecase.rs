@@ -5,14 +5,14 @@ use crate::{
 use core::str::FromStr;
 
 pub trait AddSkill {
-    fn add(&self, skill_label: SkillLabel) -> Result<Skill>;
+    fn add(&mut self, skill_label: SkillLabel) -> Result<Skill>;
 }
 
 impl<F> AddSkill for F
 where
-    F: Fn(SkillLabel) -> Result<Skill>,
+    F: FnMut(SkillLabel) -> Result<Skill>,
 {
-    fn add(&self, skill_label: SkillLabel) -> Result<Skill> {
+    fn add(&mut self, skill_label: SkillLabel) -> Result<Skill> {
         self(skill_label)
     }
 }
@@ -74,14 +74,14 @@ where
 }
 
 pub trait DeleteSkillById {
-    fn delete(&self, skill_id: SkillId) -> Result<()>;
+    fn delete(&mut self, skill_id: SkillId) -> Result<()>;
 }
 
 impl<F> DeleteSkillById for F
 where
-    F: Fn(SkillId) -> Result<()>,
+    F: FnMut(SkillId) -> Result<()>,
 {
-    fn delete(&self, skill_id: SkillId) -> Result<()> {
+    fn delete(&mut self, skill_id: SkillId) -> Result<()> {
         self(skill_id)
     }
 }

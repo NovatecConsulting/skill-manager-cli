@@ -1,4 +1,5 @@
 use anyhow::Result;
+use employees::EmployeeDb;
 use serde::{de::DeserializeOwned, Serialize};
 use skill_manager::{
     employees::{
@@ -8,19 +9,21 @@ use skill_manager::{
         },
         EmployeeId, FirstName, LastName, ProjectContribution, SkillLevel,
     },
-    projects::{ProjectDescription, ProjectId, ProjectLabel},
+    projects::{
+        usecase::{AddProject, DeleteProject, GetProject},
+        ProjectDescription, ProjectId, ProjectLabel,
+    },
     skills::{
-        usecase::{PageNumber, PageSize},
+        usecase::{AddSkill, DeleteSkillById, FindSkills, GetSkillById, PageNumber, PageSize},
         SkillId, SkillLabel,
     },
 };
 use skill_manager_in_memory::{
-    employees::{EmployeeApi, EmployeeStore},
-    in_memory_api_using,
-    projects::{ProjectStore, ProjectsApi},
-    skills::{SkillStore, SkillsApi},
+    employees::{self},
+    projects::ProjectDb,
+    skills::SkillDb,
 };
-use std::{cell::RefCell, fs, fs::File, io, path::Path, process, rc::Rc};
+use std::{fs, fs::File, io, path::Path, process};
 use structopt::StructOpt;
 use time::Date;
 
@@ -101,8 +104,8 @@ enum EmployeeCommand {
     },
 }
 
-struct FileBackedDb<T: Serialize> {
-    db: Rc<RefCell<T>>,
+struct FileBackedDb<T> {
+    db: T,
     file_path: Box<dyn AsRef<Path>>,
 }
 
@@ -112,18 +115,12 @@ impl<T: Serialize + DeserializeOwned + Default> FileBackedDb<T> {
             Ok(file_contents) => serde_json::from_str(&file_contents)?,
             _ => Default::default(),
         };
-        Ok(FileBackedDb {
-            db: Rc::new(RefCell::new(val)),
-            file_path,
-        })
+        Ok(FileBackedDb { db: val, file_path })
     }
-}
-
-impl<T: Serialize> Drop for FileBackedDb<T> {
-    fn drop(&mut self) {
-        if let Ok(file) = File::create(&*self.file_path) {
-            serde_json::to_writer_pretty(io::BufWriter::new(file), &*self.db.borrow()).unwrap();
-        }
+    fn persist(self) -> Result<()> {
+        let file = File::create(&*self.file_path)?;
+        serde_json::to_writer_pretty(io::BufWriter::new(file), &self.db)?;
+        Ok(())
     }
 }
 
@@ -132,89 +129,94 @@ fn parse_date(s: &str) -> Result<Date> {
 }
 
 fn main() {
-    let skill_db: FileBackedDb<SkillStore> =
+    let skill_db: FileBackedDb<SkillDb> =
         FileBackedDb::from_path(Box::new("./skills.json")).unwrap();
-    let project_db: FileBackedDb<ProjectStore> =
+    let project_db: FileBackedDb<ProjectDb> =
         FileBackedDb::from_path(Box::new("./projects.json")).unwrap();
-    let employee_db: FileBackedDb<EmployeeStore> =
+    let employee_db: FileBackedDb<EmployeeDb> =
         FileBackedDb::from_path(Box::new("./employees.json")).unwrap();
-
-    let api = in_memory_api_using(
-        skill_db.db.clone(),
-        project_db.db.clone(),
-        employee_db.db.clone(),
-    );
 
     let command = Opt::from_args();
 
     if let Err(e) = match command {
-        Opt::Skill(skill_command) => skill_op(skill_command, api.skills),
-        Opt::Project(project_command) => project_op(project_command, api.projects),
-        Opt::Employee(employee_command) => employee_op(employee_command, api.employees),
+        Opt::Skill(skill_command) => skill_op(skill_command, skill_db),
+        Opt::Project(project_command) => project_op(project_command, project_db),
+        Opt::Employee(employee_command) => {
+            employee_op(employee_command, employee_db, project_db, skill_db)
+        }
     } {
         eprintln!("Error: {}", e);
         process::exit(1);
     }
 }
 
-fn print_json(val: &impl Serialize) -> Result<()> {
-    println!("{}", serde_json::to_string_pretty(val)?);
-    Ok(())
+fn print_json(val: &impl Serialize) {
+    println!("{}", serde_json::to_string_pretty(val).unwrap());
 }
 
-fn skill_op(skill_command: SkillCommand, api: SkillsApi) -> Result<()> {
+fn skill_op(skill_command: SkillCommand, mut skill_db: FileBackedDb<SkillDb>) -> Result<()> {
     match skill_command {
         SkillCommand::Add { label } => {
-            let added_skill = api.add.add(label)?;
+            let added_skill = skill_db.db.add(label)?;
             print_json(&added_skill)
         }
         SkillCommand::Get { id } => {
-            let skill = api.get.get(id)?;
+            let skill = skill_db.db.get(id)?;
             print_json(&skill)
         }
         SkillCommand::Find { page, page_size } => {
-            let found = api.find.find(page, page_size)?;
+            let found = skill_db.db.find(page, page_size)?;
             print_json(&found)
         }
         SkillCommand::Delete { id } => {
-            api.delete.delete(id.clone())?;
+            skill_db.db.delete(id.clone())?;
             print_json(&format!("Deleted skill {}", id))
         }
     }
+    skill_db.persist()
 }
 
-fn project_op(project_command: ProjectCommand, api: ProjectsApi) -> Result<()> {
+fn project_op(
+    project_command: ProjectCommand,
+    mut project_db: FileBackedDb<ProjectDb>,
+) -> Result<()> {
     match project_command {
         ProjectCommand::Add { label, description } => {
-            let added_project = api.add.add(label, description)?;
+            let added_project = project_db.db.add(label, description)?;
             print_json(&added_project)
         }
         ProjectCommand::Delete { id } => {
-            api.delete.delete(id.clone())?;
+            project_db.db.delete(id.clone())?;
             print_json(&format!("Deleted project {}", id))
         }
         ProjectCommand::Get { id } => {
-            let project = api.get.get(id)?;
+            let project = project_db.db.get(id)?;
             print_json(&project)
         }
     }
+    project_db.persist()
 }
 
-fn employee_op(employee_command: EmployeeCommand, api: EmployeeApi) -> Result<()> {
+fn employee_op(
+    employee_command: EmployeeCommand,
+    mut employee_db: FileBackedDb<EmployeeDb>,
+    project_db: FileBackedDb<ProjectDb>,
+    skill_db: FileBackedDb<SkillDb>,
+) -> Result<()> {
     match employee_command {
         EmployeeCommand::Add {
             first_name,
             last_name,
         } => {
-            let added = api.add(first_name, last_name)?;
+            let added = employee_db.db.add(first_name, last_name)?;
             print_json(&added)
         }
         EmployeeCommand::Delete { id } => {
-            api.delete(id.clone())?;
+            employee_db.db.delete(id.clone())?;
             print_json(&format!("Deleted employee {}", id))
         }
         EmployeeCommand::Get { id } => {
-            let employee = api.get(id)?;
+            let employee = employee_db.db.get(id)?;
             print_json(&employee)
         }
         EmployeeCommand::AssignProject {
@@ -224,7 +226,7 @@ fn employee_op(employee_command: EmployeeCommand, api: EmployeeApi) -> Result<()
             end_date,
             contribution,
         } => {
-            let assigned = api.assign_project(
+            let assigned = employee_db.db.with(&project_db.db).assign_project(
                 employee_id,
                 ProjectAssignmentRequest {
                     project_id,
@@ -240,8 +242,13 @@ fn employee_op(employee_command: EmployeeCommand, api: EmployeeApi) -> Result<()
             skill_id,
             skill_level,
         } => {
-            let assigned = api.assign_skill(employee_id, skill_id, skill_level)?;
+            let assigned = employee_db.db.with(&skill_db.db).assign_skill(
+                employee_id,
+                skill_id,
+                skill_level,
+            )?;
             print_json(&assigned)
         }
     }
+    employee_db.persist()
 }

@@ -1,59 +1,42 @@
+use serde::{Deserialize, Serialize};
 use skill_manager::projects::{
     usecase::{AddProject, DeleteProject, GetProject},
-    Project, ProjectId,
+    Project, ProjectDescription, ProjectId, ProjectLabel,
 };
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::collections::HashMap;
 use uuid::Uuid;
 
-pub fn projects_api() -> ProjectsApi {
-    let db = Rc::new(RefCell::new(HashMap::new()));
-    projects_api_using(db)
-}
+#[derive(Default, Deserialize, Serialize)]
+pub struct ProjectDb(pub HashMap<ProjectId, Project>);
 
-pub fn projects_api_using(db: ProjectDb) -> ProjectsApi {
-    let add = add(db.clone());
-    let delete = delete(db.clone());
-    let get = get(db.clone());
-    ProjectsApi {
-        db,
-        add,
-        delete,
-        get,
-    }
-}
-
-pub struct ProjectsApi {
-    pub db: ProjectDb,
-    pub add: Box<dyn AddProject>,
-    pub delete: Box<dyn DeleteProject>,
-    pub get: Box<dyn GetProject>,
-}
-
-pub type ProjectDb = Rc<RefCell<ProjectStore>>;
-pub type ProjectStore = HashMap<ProjectId, Project>;
-
-fn add(db: ProjectDb) -> Box<dyn AddProject> {
-    Box::new(move |label, description| {
+impl AddProject for ProjectDb {
+    fn add(
+        &mut self,
+        label: ProjectLabel,
+        description: ProjectDescription,
+    ) -> skill_manager::Result<Project> {
         let id = ProjectId(Uuid::new_v4());
         let project = Project {
             id: id.clone(),
             label,
             description,
         };
-        db.borrow_mut().insert(id, project.clone());
+        self.0.insert(id, project.clone());
         Ok(project)
-    })
+    }
 }
 
-fn delete(db: ProjectDb) -> Box<dyn DeleteProject> {
-    Box::new(move |id| {
-        let _ = db.borrow_mut().remove(&id);
+impl DeleteProject for ProjectDb {
+    fn delete(&mut self, project_id: ProjectId) -> skill_manager::Result<()> {
+        let _ = self.0.remove(&project_id);
         Ok(())
-    })
+    }
 }
 
-fn get(db: ProjectDb) -> Box<dyn GetProject> {
-    Box::new(move |id| Ok(db.borrow().get(&id).cloned()))
+impl GetProject for ProjectDb {
+    fn get(&self, project_id: ProjectId) -> skill_manager::Result<Option<Project>> {
+        Ok(self.0.get(&project_id).cloned())
+    }
 }
 
 #[cfg(test)]
@@ -63,15 +46,13 @@ mod test {
 
     #[test]
     fn projects_api_test() -> skill_manager::Result<()> {
-        let api = projects_api();
+        let mut db = ProjectDb::default();
         let project = ProjectLabel("Example project".into());
-        let added = api
-            .add
-            .add(project.clone(), ProjectDescription("".into()))?;
+        let added = db.add(project.clone(), ProjectDescription("".into()))?;
         assert_eq!(project, added.label);
-        assert_eq!(api.get.get(added.id.clone())?, Some(added.clone()));
-        api.delete.delete(added.id.clone())?;
-        assert_eq!(api.get.get(added.id)?, None);
+        assert_eq!(db.get(added.id.clone())?, Some(added.clone()));
+        db.delete(added.id.clone())?;
+        assert_eq!(db.get(added.id)?, None);
 
         Ok(())
     }

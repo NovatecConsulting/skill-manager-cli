@@ -13,4 +13,5 @@ pub enum Error {
     #[error("Error: {0}")]
     Other(String),
 }
+
 pub type Result<T> = std::result::Result<T, Error>;

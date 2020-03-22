@@ -5,7 +5,7 @@ use crate::{
 
 pub trait AddProject {
     fn add(
-        &self,
+        &mut self,
         project_label: ProjectLabel,
         project_description: ProjectDescription,
     ) -> Result<Project>;
@@ -16,7 +16,7 @@ where
     F: Fn(ProjectLabel, ProjectDescription) -> Result<Project>,
 {
     fn add(
-        &self,
+        &mut self,
         project_label: ProjectLabel,
         project_description: ProjectDescription,
     ) -> Result<Project> {
@@ -25,14 +25,14 @@ where
 }
 
 pub trait DeleteProject {
-    fn delete(&self, project_id: ProjectId) -> Result<()>;
+    fn delete(&mut self, project_id: ProjectId) -> Result<()>;
 }
 
 impl<F> DeleteProject for F
 where
     F: Fn(ProjectId) -> Result<()>,
 {
-    fn delete(&self, project_id: ProjectId) -> Result<()> {
+    fn delete(&mut self, project_id: ProjectId) -> Result<()> {
         self(project_id)
     }
 }

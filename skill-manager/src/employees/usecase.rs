@@ -11,27 +11,27 @@ use thiserror::Error;
 use time::Date;
 
 pub trait AddEmployee {
-    fn add(&self, first_name: FirstName, last_name: LastName) -> crate::Result<Employee>;
+    fn add(&mut self, first_name: FirstName, last_name: LastName) -> crate::Result<Employee>;
 }
 
 impl<F> AddEmployee for F
 where
     F: Fn(FirstName, LastName) -> crate::Result<Employee>,
 {
-    fn add(&self, first_name: FirstName, last_name: LastName) -> crate::Result<Employee> {
+    fn add(&mut self, first_name: FirstName, last_name: LastName) -> crate::Result<Employee> {
         self(first_name, last_name)
     }
 }
 
 pub trait DeleteEmployeeById {
-    fn delete(&self, employee_id: EmployeeId) -> crate::Result<()>;
+    fn delete(&mut self, employee_id: EmployeeId) -> crate::Result<()>;
 }
 
 impl<F> DeleteEmployeeById for F
 where
     F: Fn(EmployeeId) -> crate::Result<()>,
 {
-    fn delete(&self, employee_id: EmployeeId) -> crate::Result<()> {
+    fn delete(&mut self, employee_id: EmployeeId) -> crate::Result<()> {
         self(employee_id)
     }
 }
@@ -66,7 +66,7 @@ pub enum AssignProjectToEmployeeError {
 
 pub trait AssignProjectToEmployee {
     fn assign_project(
-        &self,
+        &mut self,
         employee_id: EmployeeId,
         project_assignment: ProjectAssignmentRequest,
     ) -> Result<ProjectAssignment, AssignProjectToEmployeeError>;
@@ -74,13 +74,13 @@ pub trait AssignProjectToEmployee {
 
 impl<F> AssignProjectToEmployee for F
 where
-    F: Fn(
+    F: FnMut(
         EmployeeId,
         ProjectAssignmentRequest,
     ) -> Result<ProjectAssignment, AssignProjectToEmployeeError>,
 {
     fn assign_project(
-        &self,
+        &mut self,
         employee_id: EmployeeId,
         project_assignment: ProjectAssignmentRequest,
     ) -> Result<ProjectAssignment, AssignProjectToEmployeeError> {
@@ -103,7 +103,7 @@ pub enum AssignSkillToEmployeeError {
 
 pub trait AssignSkillToEmployee {
     fn assign_skill(
-        &self,
+        &mut self,
         employee_id: EmployeeId,
         skill_id: SkillId,
         skill_level: SkillLevel,
@@ -112,10 +112,14 @@ pub trait AssignSkillToEmployee {
 
 impl<F> AssignSkillToEmployee for F
 where
-    F: Fn(EmployeeId, SkillId, SkillLevel) -> Result<SkillAssignment, AssignSkillToEmployeeError>,
+    F: FnMut(
+        EmployeeId,
+        SkillId,
+        SkillLevel,
+    ) -> Result<SkillAssignment, AssignSkillToEmployeeError>,
 {
     fn assign_skill(
-        &self,
+        &mut self,
         employee_id: EmployeeId,
         skill_id: SkillId,
         skill_level: SkillLevel,
