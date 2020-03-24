@@ -10,3 +10,5 @@ edition = "2018"
 tui = "0.8.0"
 anyhow = "1.0.27"
 termion = "1.5.5"
+skill-manager = { version = "0.1", path = "../skill-manager" }
+skill-manager-in-memory = { version = "0.1", path = "../skill-manager-in-memory" }

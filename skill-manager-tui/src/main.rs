@@ -1,4 +1,14 @@
-use std::{io, iter};
+use anyhow::anyhow;
+use skill_manager::{
+    employees::{usecase::AddEmployee, FirstName, LastName},
+    projects::{usecase::AddProject, ProjectDescription, ProjectLabel},
+    skills::{usecase::AddSkill, SkillLabel},
+};
+use skill_manager_in_memory::{employees::EmployeeDb, projects::ProjectDb, skills::SkillDb};
+use std::{
+    fmt::{self, Display},
+    io, iter,
+};
 use termion::{
     event::Key,
     input::{MouseTerminal, TermRead},
@@ -9,7 +19,8 @@ use tui::{
     backend::{Backend, TermionBackend},
     layout::{Alignment, Constraint, Direction, Layout},
     style::Style,
-    widgets::{Block, Borders, Paragraph, Text, Widget},
+    symbols::DOT,
+    widgets::{Block, Borders, Paragraph, Tabs, Text, Widget},
     Terminal,
 };
 
@@ -19,12 +30,91 @@ fn main() {
     }
 }
 
-type Result<T> = std::result::Result<T, io::Error>;
+type Result<T> = anyhow::Result<T>;
+
+enum DataTab {
+    Skills,
+    Projects,
+    Employees,
+}
+
+impl Display for DataTab {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                DataTab::Employees => "Employees",
+                DataTab::Projects => "Projects",
+                DataTab::Skills => "Skills",
+            }
+        )
+    }
+}
+
+enum InputMode {
+    List,
+    Input(String),
+}
+
+struct State {
+    open_tab: DataTab,
+    mode: InputMode,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            open_tab: DataTab::Employees,
+            mode: InputMode::List,
+        }
+    }
+}
+
+impl State {
+    fn handle_input(&mut self, key: Key) -> Result<Vec<Effect>> {
+        let mut effects = vec![];
+        match &mut self.mode {
+            InputMode::Input(input) => match key {
+                Key::Esc => self.mode = InputMode::List,
+                Key::Char('\n') => {
+                    effects.push(Effect::SendInput(input.clone()));
+                    self.mode = InputMode::List;
+                }
+                Key::Char(c) => {
+                    input.push(c);
+                }
+                _ => {}
+            },
+            InputMode::List => match key {
+                Key::Char('p') => {
+                    self.open_tab = DataTab::Projects;
+                }
+                Key::Char('s') => {
+                    self.open_tab = DataTab::Skills;
+                }
+                Key::Char('e') => {
+                    self.open_tab = DataTab::Employees;
+                }
+                Key::Char('+') => self.mode = InputMode::Input(String::new()),
+                Key::Esc => effects.push(Effect::Quit),
+                _ => {}
+            },
+        }
+        Ok(effects)
+    }
+}
+
+enum Effect {
+    SendInput(String),
+    Quit,
+}
 
 #[derive(Default)]
-struct State {
-    input: String,
-    values: Vec<String>,
+struct Db {
+    skills: SkillDb,
+    projects: ProjectDb,
+    employees: EmployeeDb,
 }
 
 fn go() -> Result<()> {
@@ -38,32 +128,44 @@ fn go() -> Result<()> {
     terminal.hide_cursor()?;
 
     let mut state = State::default();
-    draw(&mut terminal, &state)?;
+    let mut db = Db::default();
+    draw(&mut terminal, &state, &db)?;
 
     for k in stdin.keys() {
-        match k? {
-            Key::Esc => {
-                return Ok(());
+        let effects = state.handle_input(k?)?;
+        for effect in effects {
+            match effect {
+                Effect::Quit => return Ok(()),
+                Effect::SendInput(input) => match state.open_tab {
+                    DataTab::Skills => {
+                        db.skills.add(SkillLabel(input))?;
+                    }
+                    DataTab::Employees => {
+                        create_employee(&mut db, input)?;
+                    }
+                    DataTab::Projects => {
+                        db.projects
+                            .add(ProjectLabel(input), ProjectDescription("".into()))?;
+                    }
+                },
             }
-            Key::Char('\n') => {
-                state.values.push(state.input.clone());
-                state.input.clear();
-            }
-            Key::Char(c) => {
-                state.input.push(c);
-            }
-            Key::Backspace => {
-                state.input.pop();
-            }
-            _ => {}
         }
-        draw(&mut terminal, &state)?;
+        draw(&mut terminal, &state, &db)?;
     }
 
     Ok(())
 }
 
-fn draw(terminal: &mut Terminal<impl Backend>, state: &State) -> Result<()> {
+fn create_employee(db: &mut Db, input: String) -> Result<()> {
+    let mut words = input.split_whitespace();
+    let first_name = words.next().ok_or(anyhow!("Empty first name"))?;
+    let last_name = LastName(words.collect());
+    db.employees
+        .add(FirstName(first_name.to_string()), last_name)?;
+    Ok(())
+}
+
+fn draw(terminal: &mut Terminal<impl Backend>, state: &State, db: &Db) -> Result<()> {
     terminal.draw(|mut f| {
         let size = f.size();
 
@@ -80,25 +182,52 @@ fn draw(terminal: &mut Terminal<impl Backend>, state: &State) -> Result<()> {
             )
             .split(size);
 
-        Block::default()
-            .title("Header")
-            .borders(Borders::ALL)
+        Tabs::default()
+            .block(Block::default().title("Skill Manager"))
+            .titles(&["[E]mployees", "[P]rojects", "[S]kills"])
+            .divider(DOT)
             .render(&mut f, chunks[0]);
 
-        let list: Vec<_> = state
-            .values
-            .iter()
-            .map(|s| format!("{}\n", s))
-            .map(Text::raw)
-            .collect();
+        let list: Vec<_> = match state.open_tab {
+            DataTab::Skills => db
+                .skills
+                .0
+                .values()
+                .map(|s| format!("{}\n", s.label))
+                .collect(),
+            DataTab::Projects => db
+                .projects
+                .0
+                .values()
+                .map(|p| format!("{}\n", p.label))
+                .collect(),
+            DataTab::Employees => db
+                .employees
+                .0
+                .values()
+                .map(|e| format!("{} {}\n", e.first_name, e.last_name))
+                .collect(),
+        };
+        let list: Vec<_> = list.iter().map(Text::raw).collect();
         Paragraph::new(list.iter())
-            .block(Block::default().title("List").borders(Borders::ALL))
+            .block(
+                Block::default()
+                    .title(&state.open_tab.to_string())
+                    .borders(Borders::ALL),
+            )
             .alignment(Alignment::Left)
             .wrap(false)
             .render(&mut f, chunks[1]);
 
-        Paragraph::new(iter::once(&Text::raw(&state.input)))
-            .block(Block::default().title("Input").borders(Borders::ALL))
+        let (input, input_block) = match &state.mode {
+            InputMode::Input(i) => (
+                &i[..],
+                Block::default().title("Input").borders(Borders::ALL),
+            ),
+            _ => ("", Block::default()),
+        };
+        Paragraph::new(iter::once(&Text::raw(input)))
+            .block(input_block)
             .style(Style::default())
             .alignment(Alignment::Left)
             .wrap(true)

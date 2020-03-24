@@ -16,7 +16,7 @@ use std::collections::{BTreeMap, HashMap};
 use uuid::Uuid;
 
 #[derive(Default, Serialize, Deserialize)]
-pub struct EmployeeDb(HashMap<EmployeeId, Employee>);
+pub struct EmployeeDb(pub HashMap<EmployeeId, Employee>);
 
 impl AddEmployee for EmployeeDb {
     fn add(

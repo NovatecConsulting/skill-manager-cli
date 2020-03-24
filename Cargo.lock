@@ -385,6 +385,8 @@ name = "skill-manager-tui"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "skill-manager",
+ "skill-manager-in-memory",
  "termion",
  "tui",
 ]
