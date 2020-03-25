@@ -18,8 +18,7 @@ use termion::{
 use tui::{
     backend::{Backend, TermionBackend},
     layout::{Alignment, Constraint, Direction, Layout},
-    style::Style,
-    symbols::DOT,
+    style::{Color, Modifier, Style},
     widgets::{Block, Borders, Paragraph, Tabs, Text, Widget},
     Terminal,
 };
@@ -36,6 +35,27 @@ enum DataTab {
     Skills,
     Projects,
     Employees,
+}
+
+impl DataTab {
+    fn render(selected_tab: &DataTab) -> Tabs<&'static str> {
+        Tabs::default()
+            .block(
+                Block::default()
+                    .title("Skill Manager")
+                    .borders(Borders::ALL),
+            )
+            .titles(&["[E]mployees", "[P]rojects", "[S]kills"])
+            .select(selected_tab.ix())
+            .highlight_style(Style::default().fg(Color::Yellow).modifier(Modifier::BOLD))
+    }
+    fn ix(&self) -> usize {
+        match self {
+            DataTab::Skills => 2,
+            DataTab::Projects => 1,
+            DataTab::Employees => 0,
+        }
+    }
 }
 
 impl Display for DataTab {
@@ -124,7 +144,7 @@ fn go() -> Result<()> {
     let stdin = io::stdin();
     let backend = TermionBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-    terminal.clear()?;
+    // terminal.clear()?;
     terminal.hide_cursor()?;
 
     let mut state = State::default();
@@ -166,27 +186,26 @@ fn create_employee(db: &mut Db, input: String) -> Result<()> {
 }
 
 fn draw(terminal: &mut Terminal<impl Backend>, state: &State, db: &Db) -> Result<()> {
+    let mut set_cursor = None;
     terminal.draw(|mut f| {
         let size = f.size();
 
+        let layout = match &state.mode {
+            InputMode::List => vec![Constraint::Percentage(20), Constraint::Percentage(80)],
+            InputMode::Input(_) => vec![
+                Constraint::Percentage(20),
+                Constraint::Percentage(40),
+                Constraint::Percentage(40),
+            ],
+        };
         let chunks = Layout::default()
             .direction(Direction::Vertical)
-            .margin(1)
-            .constraints(
-                [
-                    Constraint::Percentage(10),
-                    Constraint::Percentage(80),
-                    Constraint::Percentage(10),
-                ]
-                .as_ref(),
-            )
+            .margin(0)
+            .constraints(layout)
             .split(size);
 
-        Tabs::default()
-            .block(Block::default().title("Skill Manager"))
-            .titles(&["[E]mployees", "[P]rojects", "[S]kills"])
-            .divider(DOT)
-            .render(&mut f, chunks[0]);
+        let mut tabs = DataTab::render(&state.open_tab);
+        tabs.render(&mut f, chunks[0]);
 
         let list: Vec<_> = match state.open_tab {
             DataTab::Skills => db
@@ -219,20 +238,29 @@ fn draw(terminal: &mut Terminal<impl Backend>, state: &State, db: &Db) -> Result
             .wrap(false)
             .render(&mut f, chunks[1]);
 
-        let (input, input_block) = match &state.mode {
-            InputMode::Input(i) => (
-                &i[..],
-                Block::default().title("Input").borders(Borders::ALL),
-            ),
-            _ => ("", Block::default()),
+        if let InputMode::Input(i) = &state.mode {
+            let paragraph_chunk = chunks[2];
+            Paragraph::new(iter::once(&Text::raw(i)))
+                .block(Block::default().title("Input").borders(Borders::ALL))
+                .style(Style::default())
+                .alignment(Alignment::Left)
+                .wrap(true)
+                .render(&mut f, chunks[2]);
+
+            set_cursor = Some((
+                //TODO overflow alert!
+                paragraph_chunk.left() + i.len() as u16 + 1,
+                paragraph_chunk.top() + 1,
+            ));
         };
-        Paragraph::new(iter::once(&Text::raw(input)))
-            .block(input_block)
-            .style(Style::default())
-            .alignment(Alignment::Left)
-            .wrap(true)
-            .render(&mut f, chunks[2]);
     })?;
+
+    if let Some((x, y)) = set_cursor {
+        terminal.show_cursor()?;
+        terminal.set_cursor(x, y)?;
+    } else {
+        terminal.hide_cursor()?;
+    }
 
     Ok(())
 }
