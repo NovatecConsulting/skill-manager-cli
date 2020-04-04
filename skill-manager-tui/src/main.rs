@@ -1,6 +1,9 @@
 use anyhow::anyhow;
 use skill_manager::{
-    employees::{usecase::AddEmployee, FirstName, LastName},
+    employees::{
+        usecase::{AddEmployee, AddEmployeeRequest},
+        EmailAddress, FirstName, LastName, TelephoneNumber, Title,
+    },
     projects::{usecase::AddProject, ProjectDescription, ProjectLabel},
     skills::{usecase::AddSkill, SkillLabel},
 };
@@ -180,8 +183,13 @@ fn create_employee(db: &mut Db, input: String) -> Result<()> {
     let mut words = input.split_whitespace();
     let first_name = words.next().ok_or(anyhow!("Empty first name"))?;
     let last_name = LastName(words.collect());
-    db.employees
-        .add(FirstName(first_name.to_string()), last_name)?;
+    db.employees.add(AddEmployeeRequest {
+        first_name: FirstName(first_name.into()),
+        last_name,
+        title: Title(String::new()),
+        email: EmailAddress(String::new()),
+        telephone: TelephoneNumber(String::new()),
+    })?;
     Ok(())
 }
 

@@ -9,6 +9,6 @@ edition = "2018"
 [dependencies]
 uuid = { version = "0.8", features = ["serde", "v4"] }
 serde = { version = "1", features = ["derive"] }
-time = { version = "0.2.7", features = ["serde"] }
+time = { version = "0.2.7", features = ["serde", "std"] }
 thiserror = "1.0.11"
 anyhow = "1.0.26"

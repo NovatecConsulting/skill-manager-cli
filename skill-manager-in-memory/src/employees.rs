@@ -1,36 +1,39 @@
 use crate::{projects::ProjectDb, skills::SkillDb};
 use serde::{Deserialize, Serialize};
-use skill_manager::{
-    employees::{
-        usecase::{
-            AddEmployee, AssignProjectToEmployee, AssignProjectToEmployeeError,
-            AssignSkillToEmployee, AssignSkillToEmployeeError, DeleteEmployeeById, GetEmployeeById,
-            ProjectAssignmentRequest, SkillAssignment,
-        },
-        Employee, EmployeeId, FirstName, Knowledge, LastName, ProjectAssignment,
-        ProjectAssignmentId, SkillLevel,
+use skill_manager::employees::{
+    usecase::{
+        AddEmployee, AddEmployeeRequest, AssignProjectToEmployeeError, AssignSkillToEmployeeError,
+        CreateProjectAssignment, DeleteEmployeeById, EmployeeNotFoundError, GetEmployeeById,
+        ProjectAssignmentRequest, ProjectNotFoundError, SetSkillKnowledgeOfEmployee,
     },
-    skills::SkillId,
+    Employee, EmployeeId, ProjectAssignment, SkillAssignment,
 };
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct EmployeeDb(pub HashMap<EmployeeId, Employee>);
 
 impl AddEmployee for EmployeeDb {
-    fn add(
-        &mut self,
-        first_name: FirstName,
-        last_name: LastName,
-    ) -> skill_manager::Result<Employee> {
+    fn add(&mut self, request: AddEmployeeRequest) -> skill_manager::Result<Employee> {
+        let AddEmployeeRequest {
+            first_name,
+            last_name,
+            title,
+            email,
+            telephone,
+        } = request;
         let id = EmployeeId(Uuid::new_v4());
         let employee = Employee {
             id: id.clone(),
             first_name,
             last_name,
-            skills: BTreeMap::default(),
-            projects: Vec::default(),
+            title,
+            email,
+            telephone,
+            skills: vec![],
+            projects: vec![],
+            last_update: time::OffsetDateTime::now(),
         };
         self.0.insert(id, employee.clone());
         Ok(employee)
@@ -64,25 +67,24 @@ pub struct EmployeeDbWith<'a, Db> {
     other_db: &'a Db,
 }
 
-impl AssignProjectToEmployee for EmployeeDbWith<'_, ProjectDb> {
-    fn assign_project(
+impl CreateProjectAssignment for EmployeeDbWith<'_, ProjectDb> {
+    fn create_project_assignment(
         &mut self,
-        employee_id: EmployeeId,
         project_assignment: ProjectAssignmentRequest,
     ) -> Result<ProjectAssignment, AssignProjectToEmployeeError> {
         let employee = self
             .employee_db
             .0
-            .get_mut(&employee_id)
-            .ok_or(AssignProjectToEmployeeError::EmployeeNotFound)?;
+            .get_mut(&project_assignment.employee_id)
+            .ok_or(EmployeeNotFoundError)?;
         let project = self
             .other_db
             .0
             .get(&project_assignment.project_id)
-            .ok_or(AssignProjectToEmployeeError::ProjectNotFound)?;
+            .ok_or(ProjectNotFoundError)?;
         let project_assignment = ProjectAssignment {
-            id: ProjectAssignmentId(Uuid::new_v4()),
-            project: project.clone(),
+            label: project.label.clone(),
+            description: project.description.clone(),
             contribution: project_assignment.contribution,
             start_date: project_assignment.start_date,
             end_date: project_assignment.end_date,
@@ -92,36 +94,31 @@ impl AssignProjectToEmployee for EmployeeDbWith<'_, ProjectDb> {
     }
 }
 
-impl AssignSkillToEmployee for EmployeeDbWith<'_, SkillDb> {
-    fn assign_skill(
+impl SetSkillKnowledgeOfEmployee for EmployeeDbWith<'_, SkillDb> {
+    fn set_skill_knowledge_of_employee(
         &mut self,
-        employee_id: EmployeeId,
-        skill_id: SkillId,
-        skill_level: SkillLevel,
+        request: skill_manager::employees::usecase::SetSkillKnowledgeRequest,
     ) -> Result<SkillAssignment, AssignSkillToEmployeeError> {
         let employee = self
             .employee_db
             .0
-            .get_mut(&employee_id)
+            .get_mut(&request.employee_id)
             .ok_or(AssignSkillToEmployeeError::EmployeeNotFound)?;
 
         let skill = self
             .other_db
             .0
-            .get(&skill_id)
+            .get(&request.skill_id)
             .ok_or(AssignSkillToEmployeeError::SkillNotFound)?;
 
-        employee.skills.insert(
-            skill.label.clone(),
-            Knowledge {
-                level: skill_level.clone(),
-            },
-        );
-
-        Ok(SkillAssignment {
+        let assignment = SkillAssignment {
             label: skill.label.clone(),
-            level: skill_level,
-        })
+            level: request.level,
+            secret: request.secret,
+        };
+        employee.skills.push(assignment.clone());
+
+        Ok(assignment)
     }
 }
 
@@ -129,7 +126,10 @@ impl AssignSkillToEmployee for EmployeeDbWith<'_, SkillDb> {
 mod test {
     use super::*;
     use skill_manager::{
-        employees::ProjectContribution,
+        employees::{
+            usecase::SetSkillKnowledgeRequest, EmailAddress, FirstName, LastName,
+            ProjectContribution, SkillLevel, TelephoneNumber, Title,
+        },
         projects::{usecase::AddProject, ProjectDescription, ProjectLabel},
         skills::{usecase::AddSkill, SkillLabel},
     };
@@ -155,11 +155,21 @@ mod test {
         LastName("last name".into())
     }
 
+    fn add_employee_request() -> AddEmployeeRequest {
+        AddEmployeeRequest {
+            first_name: first_name(),
+            last_name: last_name(),
+            title: Title("".into()),
+            email: EmailAddress("".into()),
+            telephone: TelephoneNumber("".into()),
+        }
+    }
+
     #[test]
     fn employee_api_test() -> anyhow::Result<()> {
         let mut employee_db = EmployeeDb::default();
 
-        let employee = employee_db.add(first_name(), last_name())?;
+        let employee = employee_db.add(add_employee_request())?;
 
         assert_eq!(
             employee_db.get(employee.id.clone())?,
@@ -179,25 +189,27 @@ mod test {
         let mut employee_db = EmployeeDb::default();
 
         let skill = skill_db.add(skill_label())?;
-        let employee = employee_db.add(first_name(), last_name())?;
+        let employee = employee_db.add(add_employee_request())?;
         let skill_level = SkillLevel(5);
 
-        let assignment = employee_db.with(&skill_db).assign_skill(
-            employee.id.clone(),
-            skill.id.clone(),
-            skill_level.clone(),
-        )?;
+        let assignment = employee_db
+            .with(&skill_db)
+            .set_skill_knowledge_of_employee(SetSkillKnowledgeRequest {
+                employee_id: employee.id.clone(),
+                skill_id: skill.id.clone(),
+                level: skill_level.clone(),
+                secret: false,
+            })?;
 
         assert_eq!(assignment.level, skill_level);
 
         assert_eq!(
-            employee_db
-                .get(employee.id.clone())?
-                .unwrap()
-                .skills
-                .get(&skill_label())
-                .cloned(),
-            Some(Knowledge { level: skill_level })
+            employee_db.get(employee.id.clone())?.unwrap().skills,
+            vec![SkillAssignment {
+                label: skill.label.clone(),
+                level: skill_level,
+                secret: false
+            }]
         );
 
         Ok(())
@@ -209,17 +221,24 @@ mod test {
         let mut employee_db = EmployeeDb::default();
 
         let project = project_db.add(project_label(), project_description())?;
-        let employee = employee_db.add(first_name(), last_name())?;
+        let employee = employee_db.add(AddEmployeeRequest {
+            first_name: first_name(),
+            last_name: last_name(),
+            title: Title("".into()),
+            email: EmailAddress("".into()),
+            telephone: TelephoneNumber("".into()),
+        })?;
 
-        let project_assignment = employee_db.with(&project_db).assign_project(
-            employee.id.clone(),
-            ProjectAssignmentRequest {
-                project_id: project.id.clone(),
-                contribution: ProjectContribution("contribution".into()),
-                start_date: Date::parse("2014-04-01", "%F").unwrap(),
-                end_date: None,
-            },
-        )?;
+        let project_assignment =
+            employee_db
+                .with(&project_db)
+                .create_project_assignment(ProjectAssignmentRequest {
+                    employee_id: employee.id.clone(),
+                    project_id: project.id.clone(),
+                    contribution: ProjectContribution("contribution".into()),
+                    start_date: Date::parse("2014-04-01", "%F").unwrap(),
+                    end_date: None,
+                })?;
 
         assert_eq!(
             employee_db.get(employee.id.clone())?.unwrap().projects,

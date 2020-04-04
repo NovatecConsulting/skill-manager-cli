@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use skill_manager::skills::{
-    usecase::{AddSkill, DeleteSkillById, FindSkills, GetSkillById, PageNumber, PageSize},
+    usecase::{AddSkill, DeleteSkillById, FindSkills, GetSkillById},
     Skill, SkillId, SkillLabel,
 };
 use std::collections::HashMap;
@@ -16,26 +16,8 @@ impl GetSkillById for SkillDb {
 }
 
 impl FindSkills for SkillDb {
-    fn find(
-        &self,
-        page_number: Option<PageNumber>,
-        page_size: Option<PageSize>,
-    ) -> skill_manager::Result<Vec<Skill>> {
-        let page_number = match page_number {
-            Some(PageNumber(n)) => n,
-            None => 0,
-        };
-        let page_size = match page_size {
-            Some(PageSize(n)) => n,
-            None => 10,
-        };
-        Ok(self
-            .0
-            .values()
-            .skip(page_number * page_size)
-            .take(page_size)
-            .cloned()
-            .collect())
+    fn find(&self) -> skill_manager::Result<Vec<Skill>> {
+        Ok(self.0.values().cloned().collect())
     }
 }
 
@@ -68,17 +50,17 @@ mod test {
         let mut db = SkillDb::default();
         let skill = SkillLabel("Example".into());
 
-        assert_eq!(db.find(None, None)?, vec![]);
+        assert_eq!(db.find()?, vec![]);
 
         let added_skill = db.add(skill.clone())?;
 
         assert_eq!(added_skill.label, skill);
         assert_eq!(db.get(added_skill.id.clone())?.unwrap(), added_skill);
-        assert_eq!(db.find(None, None)?, vec![added_skill.clone()]);
+        assert_eq!(db.find()?, vec![added_skill.clone()]);
 
         db.delete(added_skill.id.clone())?;
 
-        assert_eq!(db.find(None, None)?, vec![]);
+        assert_eq!(db.find()?, vec![]);
         assert_eq!(db.get(added_skill.id)?, None);
 
         Ok(())

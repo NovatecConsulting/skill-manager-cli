@@ -10,5 +10,8 @@ pub struct Project {
     pub description: ProjectDescription,
 }
 
-gen_wrapper!(ProjectId: Uuid);
-gen_wrapper!(ProjectLabel, ProjectDescription);
+gen_wrapper!(
+    ProjectId: Uuid,
+    ProjectLabel: String,
+    ProjectDescription: String
+);

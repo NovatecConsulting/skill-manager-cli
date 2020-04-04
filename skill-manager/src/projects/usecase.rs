@@ -37,6 +37,19 @@ where
     }
 }
 
+pub trait FindProjects {
+    fn find_projects(&self) -> Result<Vec<Project>>;
+}
+
+impl<F> FindProjects for F
+where
+    F: Fn() -> Result<Vec<Project>>,
+{
+    fn find_projects(&self) -> Result<Vec<Project>> {
+        self()
+    }
+}
+
 pub trait GetProject {
     fn get(&self, project_id: ProjectId) -> Result<Option<Project>>;
 }

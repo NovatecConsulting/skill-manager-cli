@@ -4,25 +4,23 @@ use serde::{de::DeserializeOwned, Serialize};
 use skill_manager::{
     employees::{
         usecase::{
-            AddEmployee, AssignProjectToEmployee, AssignSkillToEmployee, DeleteEmployeeById,
-            GetEmployeeById, ProjectAssignmentRequest,
+            AddEmployee, AddEmployeeRequest, CreateProjectAssignment, DeleteEmployeeById,
+            GetEmployeeById, ProjectAssignmentRequest, SetSkillKnowledgeOfEmployee,
+            SetSkillKnowledgeRequest,
         },
-        EmployeeId, FirstName, LastName, ProjectContribution, SkillLevel,
+        EmailAddress, EmployeeId, FirstName, LastName, ProjectContribution, SkillLevel,
+        TelephoneNumber, Title,
     },
     projects::{
         usecase::{AddProject, DeleteProject, GetProject},
         ProjectDescription, ProjectId, ProjectLabel,
     },
     skills::{
-        usecase::{AddSkill, DeleteSkillById, FindSkills, GetSkillById, PageNumber, PageSize},
+        usecase::{AddSkill, DeleteSkillById, FindSkills, GetSkillById},
         SkillId, SkillLabel,
     },
 };
-use skill_manager_in_memory::{
-    employees::{self},
-    projects::ProjectDb,
-    skills::SkillDb,
-};
+use skill_manager_in_memory::{employees, projects::ProjectDb, skills::SkillDb};
 use std::{fs, fs::File, io, path::Path, process};
 use structopt::StructOpt;
 use time::Date;
@@ -36,21 +34,10 @@ enum Opt {
 
 #[derive(StructOpt)]
 enum SkillCommand {
-    Add {
-        label: SkillLabel,
-    },
-    Find {
-        #[structopt(short = "p", long = "page")]
-        page: Option<PageNumber>,
-        #[structopt(short = "s", long = "size")]
-        page_size: Option<PageSize>,
-    },
-    Get {
-        id: SkillId,
-    },
-    Delete {
-        id: SkillId,
-    },
+    Add { label: SkillLabel },
+    Find {},
+    Get { id: SkillId },
+    Delete { id: SkillId },
 }
 
 #[derive(StructOpt)]
@@ -76,6 +63,12 @@ enum EmployeeCommand {
         first_name: FirstName,
         #[structopt(short = "l", long = "last-name")]
         last_name: LastName,
+        #[structopt(long = "title")]
+        title: Option<Title>,
+        #[structopt(short = "e", long = "email", required_unless = "telephone")]
+        email: Option<EmailAddress>,
+        #[structopt(short = "n", long = "telephone-number", required_unless = "email")]
+        telephone: Option<TelephoneNumber>,
     },
     Delete {
         id: EmployeeId,
@@ -101,6 +94,8 @@ enum EmployeeCommand {
         skill_id: SkillId,
         #[structopt(short = "l", long = "skill-level")]
         skill_level: SkillLevel,
+        #[structopt(long = "secret")]
+        secret: bool,
     },
 }
 
@@ -164,8 +159,8 @@ fn skill_op(skill_command: SkillCommand, mut skill_db: FileBackedDb<SkillDb>) ->
             let skill = skill_db.db.get(id)?;
             print_json(&skill)
         }
-        SkillCommand::Find { page, page_size } => {
-            let found = skill_db.db.find(page, page_size)?;
+        SkillCommand::Find {} => {
+            let found = skill_db.db.find()?;
             print_json(&found)
         }
         SkillCommand::Delete { id } => {
@@ -207,8 +202,18 @@ fn employee_op(
         EmployeeCommand::Add {
             first_name,
             last_name,
+            title,
+            email,
+            telephone,
         } => {
-            let added = employee_db.db.add(first_name, last_name)?;
+            let add_employee_request = AddEmployeeRequest {
+                first_name,
+                last_name,
+                title: title.unwrap_or_else(|| Title(String::new())),
+                email: email.unwrap_or_else(|| EmailAddress(String::new())),
+                telephone: telephone.unwrap_or_else(|| TelephoneNumber(String::new())),
+            };
+            let added = employee_db.db.add(add_employee_request)?;
             print_json(&added)
         }
         EmployeeCommand::Delete { id } => {
@@ -226,27 +231,33 @@ fn employee_op(
             end_date,
             contribution,
         } => {
-            let assigned = employee_db.db.with(&project_db.db).assign_project(
-                employee_id,
-                ProjectAssignmentRequest {
+            let assigned = employee_db
+                .db
+                .with(&project_db.db)
+                .create_project_assignment(ProjectAssignmentRequest {
+                    employee_id,
                     project_id,
                     contribution,
                     start_date,
                     end_date,
-                },
-            )?;
+                })?;
             print_json(&assigned)
         }
         EmployeeCommand::AssignSkill {
             employee_id,
             skill_id,
             skill_level,
+            secret,
         } => {
-            let assigned = employee_db.db.with(&skill_db.db).assign_skill(
-                employee_id,
-                skill_id,
-                skill_level,
-            )?;
+            let assigned = employee_db
+                .db
+                .with(&skill_db.db)
+                .set_skill_knowledge_of_employee(SetSkillKnowledgeRequest {
+                    employee_id,
+                    skill_id,
+                    level: skill_level,
+                    secret,
+                })?;
             print_json(&assigned)
         }
     }
