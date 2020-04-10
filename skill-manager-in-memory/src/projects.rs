@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use skill_manager::projects::{
-    usecase::{AddProject, DeleteProject, GetProject},
+    usecase::{AddProject, DeleteProject, FindProjects, GetProject},
     Project, ProjectDescription, ProjectId, ProjectLabel,
 };
 use std::collections::HashMap;
@@ -36,6 +36,12 @@ impl DeleteProject for ProjectDb {
 impl GetProject for ProjectDb {
     fn get(&self, project_id: ProjectId) -> skill_manager::Result<Option<Project>> {
         Ok(self.0.get(&project_id).cloned())
+    }
+}
+
+impl FindProjects for ProjectDb {
+    fn find_projects(&self) -> skill_manager::Result<Vec<Project>> {
+        Ok(self.0.values().cloned().collect())
     }
 }
 

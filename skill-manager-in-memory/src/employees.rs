@@ -3,8 +3,9 @@ use serde::{Deserialize, Serialize};
 use skill_manager::employees::{
     usecase::{
         AddEmployee, AddEmployeeRequest, AssignProjectToEmployeeError, AssignSkillToEmployeeError,
-        CreateProjectAssignment, DeleteEmployeeById, EmployeeNotFoundError, GetEmployeeById,
-        ProjectAssignmentRequest, ProjectNotFoundError, SetSkillKnowledgeOfEmployee,
+        CreateProjectAssignment, DeleteEmployeeById, EmployeeNotFoundError, FindEmployees,
+        GetEmployeeById, ProjectAssignmentRequest, ProjectNotFoundError,
+        SetSkillKnowledgeOfEmployee,
     },
     Employee, EmployeeId, ProjectAssignment, SkillAssignment,
 };
@@ -50,6 +51,12 @@ impl DeleteEmployeeById for EmployeeDb {
 impl GetEmployeeById for EmployeeDb {
     fn get(&self, employee_id: EmployeeId) -> skill_manager::Result<Option<Employee>> {
         Ok(self.0.get(&employee_id).cloned())
+    }
+}
+
+impl FindEmployees for EmployeeDb {
+    fn find_employees(&self) -> skill_manager::Result<Vec<Employee>> {
+        Ok(self.0.values().cloned().collect())
     }
 }
 

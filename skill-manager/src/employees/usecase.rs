@@ -45,14 +45,14 @@ where
 }
 
 pub trait FindEmployees {
-    fn find(&self) -> crate::Result<Vec<Employee>>;
+    fn find_employees(&self) -> crate::Result<Vec<Employee>>;
 }
 
 impl<F> FindEmployees for F
 where
     F: Fn() -> crate::Result<Vec<Employee>>,
 {
-    fn find(&self) -> crate::Result<Vec<Employee>> {
+    fn find_employees(&self) -> crate::Result<Vec<Employee>> {
         self()
     }
 }

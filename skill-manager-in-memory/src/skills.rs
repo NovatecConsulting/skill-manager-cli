@@ -16,7 +16,7 @@ impl GetSkillById for SkillDb {
 }
 
 impl FindSkills for SkillDb {
-    fn find(&self) -> skill_manager::Result<Vec<Skill>> {
+    fn find_skills(&self) -> skill_manager::Result<Vec<Skill>> {
         Ok(self.0.values().cloned().collect())
     }
 }

@@ -1,11 +1,17 @@
 use anyhow::anyhow;
 use skill_manager::{
     employees::{
-        usecase::{AddEmployee, AddEmployeeRequest},
+        usecase::{AddEmployee, AddEmployeeRequest, FindEmployees},
         EmailAddress, FirstName, LastName, TelephoneNumber, Title,
     },
-    projects::{usecase::AddProject, ProjectDescription, ProjectLabel},
-    skills::{usecase::AddSkill, SkillLabel},
+    projects::{
+        usecase::{AddProject, FindProjects},
+        ProjectDescription, ProjectLabel,
+    },
+    skills::{
+        usecase::{AddSkill, FindSkills},
+        SkillLabel,
+    },
 };
 use skill_manager_in_memory::{employees::EmployeeDb, projects::ProjectDb, skills::SkillDb};
 use std::{
@@ -218,20 +224,23 @@ fn draw(terminal: &mut Terminal<impl Backend>, state: &State, db: &Db) -> Result
         let list: Vec<_> = match state.open_tab {
             DataTab::Skills => db
                 .skills
-                .0
-                .values()
+                .find_skills()
+                .unwrap()
+                .into_iter()
                 .map(|s| format!("{}\n", s.label))
                 .collect(),
             DataTab::Projects => db
                 .projects
-                .0
-                .values()
+                .find_projects()
+                .unwrap()
+                .into_iter()
                 .map(|p| format!("{}\n", p.label))
                 .collect(),
             DataTab::Employees => db
                 .employees
-                .0
-                .values()
+                .find_employees()
+                .unwrap()
+                .into_iter()
                 .map(|e| format!("{} {}\n", e.first_name, e.last_name))
                 .collect(),
         };

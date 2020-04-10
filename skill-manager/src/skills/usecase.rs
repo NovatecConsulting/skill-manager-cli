@@ -17,14 +17,14 @@ where
 }
 
 pub trait FindSkills {
-    fn find(&self) -> Result<Vec<Skill>>;
+    fn find_skills(&self) -> Result<Vec<Skill>>;
 }
 
 impl<F> FindSkills for F
 where
     F: Fn() -> Result<Vec<Skill>>,
 {
-    fn find(&self) -> Result<Vec<Skill>> {
+    fn find_skills(&self) -> Result<Vec<Skill>> {
         self()
     }
 }
