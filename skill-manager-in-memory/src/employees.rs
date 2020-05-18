@@ -34,7 +34,7 @@ impl AddEmployee for EmployeeDb {
             telephone,
             skills: vec![],
             projects: vec![],
-            last_update: time::OffsetDateTime::now(),
+            last_update: time::OffsetDateTime::now_utc(),
         };
         self.0.insert(id, employee.clone());
         Ok(employee)
