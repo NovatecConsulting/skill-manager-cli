@@ -47,13 +47,13 @@ enum DataTab {
 }
 
 impl DataTab {
+    const SIZE: u16 = 3;
+
     fn render(selected_tab: &DataTab) -> Tabs<&'static str> {
+        let mut borders = Borders::ALL;
+        borders.remove(Borders::BOTTOM);
         Tabs::default()
-            .block(
-                Block::default()
-                    .title("Skill Manager")
-                    .borders(Borders::ALL),
-            )
+            .block(Block::default().title("Skill Manager").borders(borders))
             .titles(&["[E]mployees", "[P]rojects", "[S]kills"])
             .select(selected_tab.ix())
             .highlight_style(Style::default().fg(Color::Yellow).modifier(Modifier::BOLD))
@@ -205,11 +205,16 @@ fn draw(terminal: &mut Terminal<impl Backend>, state: &State, db: &Db) -> Result
         let size = f.size();
 
         let layout = match &state.mode {
-            InputMode::List => vec![Constraint::Percentage(20), Constraint::Percentage(80)],
+            InputMode::List => vec![
+                Constraint::Length(DataTab::SIZE),
+                Constraint::Percentage(90),
+                Constraint::Length(1),
+            ],
             InputMode::Input(_) => vec![
-                Constraint::Percentage(20),
-                Constraint::Percentage(40),
-                Constraint::Percentage(40),
+                Constraint::Length(DataTab::SIZE),
+                Constraint::Percentage(90),
+                Constraint::Length(2),
+                Constraint::Length(1),
             ],
         };
         let chunks = Layout::default()
