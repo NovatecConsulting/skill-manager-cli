@@ -160,7 +160,7 @@ fn skill_op(skill_command: SkillCommand, mut skill_db: FileBackedDb<SkillDb>) ->
             print_json(&skill)
         }
         SkillCommand::Find {} => {
-            let found = skill_db.db.find()?;
+            let found = skill_db.db.find_skills()?;
             print_json(&found)
         }
         SkillCommand::Delete { id } => {
