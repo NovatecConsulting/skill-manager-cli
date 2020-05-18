@@ -275,6 +275,14 @@ fn draw(terminal: &mut Terminal<impl Backend>, state: &State, db: &Db) -> Result
                 paragraph_chunk.top() + 1,
             ));
         };
+
+        let hotkey_hints = [Text::raw("[+] New entry")];
+        let mut hotkey_helper = Paragraph::new(hotkey_hints.iter());
+        let hotkey_chunk_ix = match &state.mode {
+            InputMode::List => 2,
+            InputMode::Input(_) => 3,
+        };
+        hotkey_helper.render(&mut f, chunks[hotkey_chunk_ix]);
     })?;
 
     if let Some((x, y)) = set_cursor {
