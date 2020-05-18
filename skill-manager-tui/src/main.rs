@@ -28,7 +28,7 @@ use tui::{
     backend::{Backend, TermionBackend},
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Paragraph, Tabs, Text, Widget},
+    widgets::{Block, Paragraph, Tabs, Text, Widget},
     Terminal,
 };
 
@@ -50,10 +50,8 @@ impl DataTab {
     const SIZE: u16 = 3;
 
     fn render(selected_tab: &DataTab) -> Tabs<&'static str> {
-        let mut borders = Borders::ALL;
-        borders.remove(Borders::BOTTOM);
         Tabs::default()
-            .block(Block::default().title("Skill Manager").borders(borders))
+            .block(Block::default().title("Skill Manager"))
             .titles(&["[E]mployees", "[P]rojects", "[S]kills"])
             .select(selected_tab.ix())
             .highlight_style(Style::default().fg(Color::Yellow).modifier(Modifier::BOLD))
@@ -208,13 +206,13 @@ fn draw(terminal: &mut Terminal<impl Backend>, state: &State, db: &Db) -> Result
             InputMode::List => vec![
                 Constraint::Length(DataTab::SIZE),
                 Constraint::Percentage(90),
-                Constraint::Length(1),
+                Constraint::Length(2),
             ],
             InputMode::Input(_) => vec![
                 Constraint::Length(DataTab::SIZE),
-                Constraint::Percentage(90),
+                Constraint::Percentage(85),
+                Constraint::Length(5),
                 Constraint::Length(2),
-                Constraint::Length(1),
             ],
         };
         let chunks = Layout::default()
@@ -251,11 +249,7 @@ fn draw(terminal: &mut Terminal<impl Backend>, state: &State, db: &Db) -> Result
         };
         let list: Vec<_> = list.iter().map(Text::raw).collect();
         Paragraph::new(list.iter())
-            .block(
-                Block::default()
-                    .title(&state.open_tab.to_string())
-                    .borders(Borders::ALL),
-            )
+            .block(Block::default().title(&state.open_tab.to_string()))
             .alignment(Alignment::Left)
             .wrap(false)
             .render(&mut f, chunks[1]);
@@ -263,7 +257,7 @@ fn draw(terminal: &mut Terminal<impl Backend>, state: &State, db: &Db) -> Result
         if let InputMode::Input(i) = &state.mode {
             let paragraph_chunk = chunks[2];
             Paragraph::new(iter::once(&Text::raw(i)))
-                .block(Block::default().title("Input").borders(Borders::ALL))
+                .block(Block::default().title("Input"))
                 .style(Style::default())
                 .alignment(Alignment::Left)
                 .wrap(true)
