@@ -50,17 +50,17 @@ mod test {
         let mut db = SkillDb::default();
         let skill = SkillLabel("Example".into());
 
-        assert_eq!(db.find()?, vec![]);
+        assert_eq!(db.find_skills()?, vec![]);
 
         let added_skill = db.add(skill.clone())?;
 
         assert_eq!(added_skill.label, skill);
         assert_eq!(db.get(added_skill.id.clone())?.unwrap(), added_skill);
-        assert_eq!(db.find()?, vec![added_skill.clone()]);
+        assert_eq!(db.find_skills()?, vec![added_skill.clone()]);
 
         db.delete(added_skill.id.clone())?;
 
-        assert_eq!(db.find()?, vec![]);
+        assert_eq!(db.find_skills()?, vec![]);
         assert_eq!(db.get(added_skill.id)?, None);
 
         Ok(())
